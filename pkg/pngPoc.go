@@ -62,7 +62,8 @@ func MakeAPng() {
 	}
 
 	// Set color for each pixel.
-	getImage := func(xOffset, yOffset float64) *image.RGBA {
+	// initial image implementation with some waves
+	_ = func(xOffset, yOffset float64) *image.RGBA {
 		img := image.NewRGBA(image.Rectangle{upLeft, lowRight})
 
 		for x := 0; x < width; x++ {
@@ -117,20 +118,22 @@ func MakeAPng() {
 
 	//outGif := &gif.GIF{}
 
-	length := 200
+	length := 500
 
 	var wg sync.WaitGroup
 
 	frames := make([]bytes.Buffer, length)
+	completed := 0
 
 	for i := 0; i < length; i++ {
 		localI := i
 		wg.Add(1)
 		go func() {
-			x := float64(localI) * 2
-			y := float64(localI) * 0.3
-
-			img := getImage(x, y)
+			//x := float64(localI) * 2
+			//y := float64(localI) * 0.3
+			//
+			//img := getImage(x, y)
+			img := GetRadiatorImage(float64(localI), width, height)
 
 			var buf bytes.Buffer
 			jpeg.Encode(&buf, img, &jpeg.Options{
@@ -139,6 +142,10 @@ func MakeAPng() {
 			frames[localI] = buf
 
 			wg.Done()
+			completed++
+			if completed % 10 == 0 {
+				fmt.Printf("finished frame %v / %v\n", completed, length)
+			}
 		}()
 	}
 
