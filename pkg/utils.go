@@ -26,3 +26,23 @@ func Dist(a, b, x, y float64) float64 {
 		math.Pow(a - x, 2) +
 		math.Pow(b - y, 2))
 }
+
+func overlayColorComponent(colorA, alphaA, colorB, alphaB uint8) uint8 {
+	aContrib := float64(alphaA) * float64(colorA) / 0xff
+	bContrib := float64(alphaB) * float64(colorB) / 0xff
+
+	total := uint8(aContrib + bContrib)
+	if total > 0xff {
+		return  0xff
+	}
+	return total
+}
+
+func OverlayColor(under, over color.RGBA) color.RGBA {
+	return color.RGBA{
+		R: overlayColorComponent(under.R, under.A, over.R, over.A),
+		G: overlayColorComponent(under.G, under.A, over.G, over.A),
+		B: overlayColorComponent(under.B, under.A, over.B, over.A),
+		A: 0xff,
+	}
+}

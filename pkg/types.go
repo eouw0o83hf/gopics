@@ -44,17 +44,6 @@ func (c ColorLayer) GetHeight() int {
 	return len(c[0])
 }
 
-func OverlayColor(colorA, alphaA, colorB, alphaB uint8) uint8 {
-	aContrib := float64(alphaA) * float64(colorA) / 0xff
-	bContrib := float64(alphaB) * float64(colorB) / 0xff
-
-	total := uint8(aContrib + bContrib)
-	if total > 0xff {
-		return  0xff
-	}
-	return total
-}
-
 func (c ColorLayer) Overlay(l RenderedLayer, t float64) RenderedLayer {
 	result := make([][]color.RGBA, len(c))
 
@@ -64,22 +53,25 @@ func (c ColorLayer) Overlay(l RenderedLayer, t float64) RenderedLayer {
 			behind := l.GetRgba(x, y)
 			current := c[x][y]
 
-			result[x][y] = color.RGBA{
-				R: OverlayColor(behind.R, behind.A, current.R, current.A),
-				G: OverlayColor(behind.G, behind.A, current.G, current.A),
-				B: OverlayColor(behind.B, behind.A, current.B, current.A),
-				A: 0xff,
-			}
+			result[x][y] = OverlayColor(*behind, current)
 		}
 	}
 
 	return ColorLayer(result)
 }
 
+func (a ColorLayer) GetPixel(c color.RGBA, x, y, t float64) color.RGBA {
+	current := a[int(x)][int(y)]
+	return OverlayColor(c, current)
+}
+
 // Layer defines a component of an image stack
 // which may or may not contain a colorspace rendering
 type Layer interface {
+	// l is the underlying layer
 	Overlay(l RenderedLayer, t float64) RenderedLayer
+	// c is the underlying color
+	GetPixel(c color.RGBA , x, y, t float64) color.RGBA
 }
 
 // RenderedLayer denotes a Layer which has been
@@ -95,4 +87,48 @@ type RenderedLayer interface {
 // the backing field to a particular Layer
 type Field interface {
 	GetFieldStrength(x, y, t float64) float64
+}
+
+// accumulator for an anti-aliasing color
+type RgbAa struct {
+	R float64
+	G float64
+	B float64
+	Count int
+}
+
+func NewRgbAa(c *color.RGBA) RgbAa {
+	if c == nil {
+		return RgbAa{
+			R:     0,
+			G:     0,
+			B:     0,
+			Count: 0,
+		}
+	}
+
+	return RgbAa{
+		R:     float64(c.R),
+		G:     float64(c.G),
+		B:     float64(c.B),
+		Count: 1,
+	}
+}
+
+func (a RgbAa) Add(c color.RGBA) RgbAa  {
+	return RgbAa{
+		R:     a.R + float64(c.R),
+		G:     a.G + float64(c.G),
+		B:     a.B + float64(c.B),
+		Count: a.Count + 1,
+	}
+}
+
+func (a RgbAa) ToColor() color.RGBA {
+	return color.RGBA{
+		R: uint8(a.R / float64(a.Count)),
+		G: uint8(a.G / float64(a.Count)),
+		B: uint8(a.B / float64(a.Count)),
+		A: 0xff,
+	}
 }

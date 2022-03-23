@@ -47,3 +47,9 @@ func (f GlowingCurveLayer) Rasterize(t float64) ColorLayer {
 func (f GlowingCurveLayer) Overlay(l RenderedLayer, t float64) RenderedLayer {
 	return f.Rasterize(t).Overlay(l, t)
 }
+
+func (f GlowingCurveLayer) GetPixel(c color.RGBA, x, y, t float64) color.RGBA {
+	field := f.GetFieldStrength(x, y, t)
+	scaled := ScaleColor(f.BaseColor, field)
+	return OverlayColor(c, scaled)
+}

@@ -15,7 +15,7 @@ import (
 
 func MakeAPng() {
 	width := 2000
-	height := 1200
+	height := 1500
 
 	// offsets: [x shift, poly0, poly1, poly2]
 	makeLayer := func(offsets []float64, c color.RGBA, radius, power float64) GlowingCurveLayer {
@@ -70,13 +70,45 @@ func MakeAPng() {
 			5, 2),
 	}
 	RenderAvi(func(t float64) RenderedLayer {
-		accum := RenderedLayer(
-			BackgroundLayer(width, height))
-		for _, l := range layers {
-			accum = l.Overlay(accum, t)
+		result := make([][]color.RGBA, width)
+
+		for x := 0; x < width; x++ {
+			result[x] = make([]color.RGBA, height)
+			for y := 0; y < height; y++ {
+				accum := NewRgbAa(nil)
+
+				for i := -1; i <= 1; i++ {
+					for j := -1; j <= 1; j++ {
+						innerAccum := color.RGBA{0, 0, 0, 0}
+						for _, l := range layers {
+							dX := float64(i) / 2
+							dY := float64(j) / 2
+
+							innerAccum = l.GetPixel(innerAccum, float64(x) + dX, float64(y) + dY, t)
+						}
+						accum = accum.Add(innerAccum)
+					}
+				}
+
+				result[x][y] = accum.ToColor()
+
+				//accum := color.RGBA{0, 0, 0, 0}
+				//for _, l := range layers {
+				//	accum = l.GetPixel(accum, float64(x), float64(y), t)
+				//}
+				//result[x][y] = accum
+			}
 		}
-		return accum
-	}, 1000, width, height, "05")
+
+		return ColorLayer(result)
+
+		//accum := RenderedLayer(
+		//	BackgroundLayer(width, height))
+		//for _, l := range layers {
+		//	accum = l.Overlay(accum, t)
+		//}
+		//return accum
+	}, 500, width, height, "06")
 	return
 
 	//layer := GlowingCurveLayer{
