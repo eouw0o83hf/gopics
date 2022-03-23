@@ -14,8 +14,105 @@ import (
 )
 
 func MakeAPng() {
-	width := 1000
-	height := 1000
+	width := 2000
+	height := 1200
+
+	// offsets: [x shift, poly0, poly1, poly2]
+	makeLayer := func(offsets []float64, c color.RGBA, radius, power float64) GlowingCurveLayer {
+		return GlowingCurveLayer{
+			FieldFunc: func(x, t float64) float64 {
+				x = x + offsets[0]
+				coeffs := []float64{
+					180 + offsets[1],
+					200 + offsets[2],
+					150 + offsets[3],
+				}
+				return coeffs[0]*math.Sin(x/55-t/100) +
+					coeffs[1]*math.Cos(x/100-t/22) -
+					coeffs[2]*math.Sin(math.Pi/3+x/70+t/1000)
+			},
+			BaseColor: c,
+			Width:     width,
+			Height:    height,
+			Radius: radius,
+			Power: power,
+		}
+	}
+
+	layers := []GlowingCurveLayer{
+		makeLayer(
+			[]float64{0, 0, 0, 0},
+			color.RGBA{0x10, 0xe0, 0xa0, 0xff},
+			20, 2),
+		makeLayer(
+			[]float64{0, 0, 2, 2},
+			color.RGBA{0xe0, 0xe0, 0x30, 0xc0},
+			20, 2),
+		makeLayer(
+			[]float64{0, 5, -3, 10},
+			color.RGBA{0xc0, 0x10, 0x60, 0xc0},
+			20, 2),
+		makeLayer(
+			[]float64{-10, 0, 0, 0},
+			color.RGBA{0xff, 0xff, 0xff, 0xff},
+			10, 0.4),
+		makeLayer(
+			[]float64{10, 0, 0, 0},
+			color.RGBA{0xff, 0xff, 0xff, 0xff},
+			10, 0.4),
+		makeLayer(
+			[]float64{-3, 10, 10, 10},
+			color.RGBA{0xff, 0x00, 0xff, 0xff},
+			30, 1.5),
+		makeLayer(
+			[]float64{7, -14, 3, -11},
+			color.RGBA{0xff, 0xff, 0x00, 0xff},
+			5, 2),
+	}
+	RenderAvi(func(t float64) RenderedLayer {
+		accum := RenderedLayer(
+			BackgroundLayer(width, height))
+		for _, l := range layers {
+			accum = l.Overlay(accum, t)
+		}
+		return accum
+	}, 1000, width, height, "05")
+	return
+
+	//layer := GlowingCurveLayer{
+	//	FieldFunc: func(x, t float64) float64 {
+	//		//return 200 * math.Cos((x - t + math.Cos(t / 10) * 10) / 100)
+	//		x = x - 5
+	//		return 175*math.Sin(x/55-t/100) + 205*math.Cos(x/100-t/22) - 130*math.Sin(math.Pi/3+x/70+t/1000)
+	//	},
+	//	BaseColor: color.RGBA{
+	//		R: 0x10,
+	//		G: 0xe0,
+	//		B: 0xa0,
+	//		A: 0xff,
+	//	},
+	//	Width:  width,
+	//	Height: height,
+	//}
+	//layer2 := GlowingCurveLayer{
+	//	FieldFunc: func(x, t float64) float64 {
+	//		return 180*math.Sin(x/55-t/100) + 200*math.Cos(x/100-t/22) - 150*math.Sin(math.Pi/3+x/70+t/1000)
+	//	},
+	//	BaseColor: color.RGBA{
+	//		R: 0xe0,
+	//		G: 0x50,
+	//		B: 0x20,
+	//		A: 0xff,
+	//	},
+	//	Width:  width,
+	//	Height: height,
+	//}
+	//
+	//RenderAvi(func(t float64) RenderedLayer {
+	//	return layer2.Rasterize(t).Overlay(
+	//		layer.Rasterize(t), t)
+	//}, 100, width, height, "04")
+	//return
 
 	upLeft := image.Point{0, 0}
 	lowRight := image.Point{width, height}
@@ -45,20 +142,20 @@ func MakeAPng() {
 			},
 			c: rgb(0xff, 0x60, 0x10),
 		},
-		{
-			f: func(x float64) float64 {
-				moded := float64(x) / 29
-				return 100*math.Cos(moded+1) + 300*math.Sin(moded/8)
-			},
-			c: rgb(0x30, 0x60, 0xa0),
-		},
-		{
-			f: func(x float64) float64 {
-				moded := float64(x) / 100
-				return 10*math.Sin(moded) - float64(x)
-			},
-			c: rgb(0x10, 0xc0, 0xa0),
-		},
+		//{
+		//	f: func(x float64) float64 {
+		//		moded := float64(x) / 29
+		//		return 100*math.Cos(moded+1) + 300*math.Sin(moded/8)
+		//	},
+		//	c: rgb(0x30, 0x60, 0xa0),
+		//},
+		//{
+		//	f: func(x float64) float64 {
+		//		moded := float64(x) / 100
+		//		return 10*math.Sin(moded) - float64(x)
+		//	},
+		//	c: rgb(0x10, 0xc0, 0xa0),
+		//},
 	}
 
 	// Set color for each pixel.
@@ -118,7 +215,7 @@ func MakeAPng() {
 
 	//outGif := &gif.GIF{}
 
-	length := 500
+	length := 50 //0
 
 	var wg sync.WaitGroup
 
@@ -143,7 +240,7 @@ func MakeAPng() {
 
 			wg.Done()
 			completed++
-			if completed % 10 == 0 {
+			if completed%10 == 0 {
 				fmt.Printf("finished frame %v / %v\n", completed, length)
 			}
 		}()

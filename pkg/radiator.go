@@ -6,9 +6,7 @@ import (
 	"math"
 )
 
-type Layer [][]*color.RGBA
-
-func GetRadiator(t float64, width, height int) Layer {
+func GetRadiator(t float64, width, height int) [][]*color.RGBA {
 	// initialize field
 	field := make([][]float64, width)
 	for x := 0; x < width; x++ {
