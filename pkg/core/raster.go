@@ -35,16 +35,35 @@ func (r Raster) Traverse(f func(i, j, x, y int)) {
 
 	for i := 0; i < width; i++ {
 		for j := 0; j < height; j++ {
-			x := i + r.Window.Min.X
-			y := j + r.Window.Min.Y
-
-			f(i, j, x, y)
+			f(i, j, r.ItoX(i), r.JToY(j))
 		}
 	}
 }
 
+// ItoX converts i (raster index) to x (field coord)
+func (r Raster) ItoX(i int) int {
+	return i + r.Window.Min.X
+}
+
+func (r Raster) XtoI(x int) int {
+	return x - r.Window.Min.X
+}
+
+// JToY converts j (raster index) to y (field coord)
+func (r Raster) JToY(j int) int {
+	return  j + r.Window.Min.Y
+}
+
+func (r Raster) YToJ(y int) int {
+	return y - r.Window.Min.Y
+}
+
 func (r Raster) GetRgba(i, j int) color.RGBA {
 	return r.Bitmap[i][j]
+}
+
+func (r Raster) SetRgba(i, j int, c color.RGBA) {
+	r.Bitmap[i][j] = c
 }
 
 func (r Raster) ToImage() *image.RGBA {
