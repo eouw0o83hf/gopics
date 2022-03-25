@@ -1,9 +1,9 @@
 package main
 
 import (
-	"gopics/pkg"
+	"gopics/pkg/compositions"
 )
 
 func main() {
-	pkg.MakeAPng()
+	compositions.Run_C07()
 }

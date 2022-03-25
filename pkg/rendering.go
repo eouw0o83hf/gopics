@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/icza/mjpeg"
+	"gopics/pkg/core"
 	"image"
 	"image/jpeg"
 	"image/png"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 )
 
@@ -55,20 +55,66 @@ func RenderPng(l RenderedLayer, prefix string) {
 	CopyToLatest(filename)
 }
 
-func RenderAvi(layerGen func(float642 float64) RenderedLayer, frameCount, width, height int, prefix string) {
+func RenderAvi(layerGen func(t int) *core.Raster, frameCount int, prefix string) {
 	frames := make([]bytes.Buffer, frameCount)
 
-	var wg sync.WaitGroup
 	completed := 0
 
-	percentageChunk := frameCount / 10
+	percentageChunk := frameCount / 20
+	if percentageChunk == 0 {
+		percentageChunk = 1
+	}
+
+	var width, height int
+
+	for i := 0; i < frameCount; i++ {
+		func(i int) {
+			raster := layerGen(i)
+			width = raster.Window.Dx()
+			height = raster.Window.Dy()
+
+			img := raster.ToImage()
+
+			var buf bytes.Buffer
+			jpeg.Encode(&buf, img, &jpeg.Options{
+				Quality: 100,
+			})
+			frames[i] = buf
+
+			completed++
+			if completed%percentageChunk == 0 {
+				fmt.Printf("%v%% rendered\n", int(completed*100/frameCount))
+			}
+		}(i)
+	}
+
+	//wg.Wait()
+
+	filename := getFilename(prefix, "avi")
+
+	movie, _ := mjpeg.New(filename, int32(width), int32(height), 30)
+	for _, frame := range frames {
+		movie.AddFrame(frame.Bytes())
+	}
+	movie.Close()
+
+	CopyToLatest(filename)
+}
+
+func RenderAvi_Deprecated(layerGen func(float642 float64) RenderedLayer, frameCount, width, height int, prefix string) {
+	frames := make([]bytes.Buffer, frameCount)
+
+	//var wg sync.WaitGroup
+	completed := 0
+
+	percentageChunk := frameCount / 20
 	if percentageChunk == 0 {
 		percentageChunk = 1
 	}
 
 	for i := 0; i < frameCount; i++ {
-		wg.Add(1)
-		go func(i int) {
+		//wg.Add(1)
+		func(i int) {
 			img := LayerToImage(
 				layerGen(float64(i)))
 
@@ -78,7 +124,7 @@ func RenderAvi(layerGen func(float642 float64) RenderedLayer, frameCount, width,
 			})
 			frames[i] = buf
 
-			wg.Done()
+			//wg.Done()
 
 			completed++
 			if completed%percentageChunk == 0 {
@@ -87,7 +133,7 @@ func RenderAvi(layerGen func(float642 float64) RenderedLayer, frameCount, width,
 		}(i)
 	}
 
-	wg.Wait()
+	//wg.Wait()
 
 	filename := getFilename(prefix, "avi")
 

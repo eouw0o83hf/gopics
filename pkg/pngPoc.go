@@ -34,8 +34,8 @@ func MakeAPng() {
 			BaseColor: c,
 			Width:     width,
 			Height:    height,
-			Radius: radius,
-			Power: power,
+			Radius:    radius,
+			Power:     power,
 		}
 	}
 
@@ -69,36 +69,40 @@ func MakeAPng() {
 			color.RGBA{0xff, 0xff, 0x00, 0xff},
 			5, 2),
 	}
-	RenderAvi(func(t float64) RenderedLayer {
+	RenderAvi_Deprecated(func(t float64) RenderedLayer {
 		result := make([][]color.RGBA, width)
 
+		var wg sync.WaitGroup
+
 		for x := 0; x < width; x++ {
-			result[x] = make([]color.RGBA, height)
-			for y := 0; y < height; y++ {
-				accum := NewRgbAa(nil)
+			go func(x int) {
+				wg.Add(1)
 
-				for i := -1; i <= 1; i++ {
-					for j := -1; j <= 1; j++ {
-						innerAccum := color.RGBA{0, 0, 0, 0}
-						for _, l := range layers {
-							dX := float64(i) / 2
-							dY := float64(j) / 2
+				result[x] = make([]color.RGBA, height)
+				for y := 0; y < height; y++ {
+					accum := NewRgbAa(nil)
 
-							innerAccum = l.GetPixel(innerAccum, float64(x) + dX, float64(y) + dY, t)
+					for i := -1; i <= 1; i++ {
+						for j := -1; j <= 1; j++ {
+							innerAccum := color.RGBA{0, 0, 0, 0}
+							for _, l := range layers {
+								dX := float64(i) / 2
+								dY := float64(j) / 2
+
+								innerAccum = l.GetPixel(innerAccum, float64(x)+dX, float64(y)+dY, t)
+							}
+							accum = accum.Add(innerAccum)
 						}
-						accum = accum.Add(innerAccum)
 					}
+
+					result[x][y] = accum.ToColor()
 				}
 
-				result[x][y] = accum.ToColor()
-
-				//accum := color.RGBA{0, 0, 0, 0}
-				//for _, l := range layers {
-				//	accum = l.GetPixel(accum, float64(x), float64(y), t)
-				//}
-				//result[x][y] = accum
-			}
+				wg.Done()
+			}(x)
 		}
+
+		wg.Wait()
 
 		return ColorLayer(result)
 
@@ -108,7 +112,7 @@ func MakeAPng() {
 		//	accum = l.Overlay(accum, t)
 		//}
 		//return accum
-	}, 500, width, height, "06")
+	}, 100, width, height, "06")
 	return
 
 	//layer := GlowingCurveLayer{
@@ -140,7 +144,7 @@ func MakeAPng() {
 	//	Height: height,
 	//}
 	//
-	//RenderAvi(func(t float64) RenderedLayer {
+	//RenderAvi_Deprecated(func(t float64) RenderedLayer {
 	//	return layer2.Rasterize(t).Overlay(
 	//		layer.Rasterize(t), t)
 	//}, 100, width, height, "04")
